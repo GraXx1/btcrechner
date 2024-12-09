@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Kalkulator</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-image: url('https://media.test.de/imgs/52/204320_0-00f733f1fbdc6ab5.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            color: white;
+        }
+
+        .overlay {
+            background-color: rgba(0, 0, 0, 0.6);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            z-index: 2;
+            position: relative;
+        }
+
+        .calculator {
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            color: black;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+
+        .description ul {
+            margin-top: 10px;
+            padding-left: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        input {
+            width: calc(100% - 20px);
+            padding: 8px 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        h2 {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        p#result {
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay"></div>
+    <div class="container">
+        <div class="calculator">
+            <h1>Bitcoin-Kalkulator</h1>
+            <div class="description">
+                <p>
+                    Dieses Tool hilft dir zu berechnen, wie viele Bitcoin du heute benötigen würdest, um deine zukünftigen Lebenshaltungskosten zu decken. 
+                    Es basiert auf folgenden Annahmen:
+                </p>
+                <ul>
+                    <li>Deine monatlichen Kosten werden durch eine jährliche Fiat-Inflationsrate erhöht.</li>
+                    <li>Der Bitcoin-Preis wächst mit einem festen Multiplikationsfaktor alle 4 Jahre.</li>
+                    <li>Du entnimmst alle 4 Jahre die benötigte Menge an Bitcoin.</li>
+                </ul>
+                <p>
+                    Gib deine monatlichen Kosten und die entsprechenden Annahmen in die Felder ein, und das Tool liefert eine Schätzung der benötigten Bitcoin.
+                </p>
+            </div>
+            <form id="bitcoinForm">
+                <label for="C">
+                    Monatlich benötigtes Fiat-Kapital (C):
+                    <span class="tooltip">ℹ️
+                        <span class="tooltiptext">Der monatliche Betrag in Fiat-Währung (z. B. Euro), den du für deine Lebenshaltungskosten benötigst. Dies wird automatisch auf 12 Monate hochgerechnet.</span>
+                    </span>
+                </label>
+                <input type="number" id="C" name="C" required>
+
+                <label for="i">
+                    Fiat-Inflationsrate in % (i):
+                    <span class="tooltip">ℹ️
+                        <span class="tooltiptext">Die geschätzte jährliche Inflation, die die Kosten erhöht.</span>
+                    </span>
+                </label>
+                <input type="number" step="0.01" id="i" name="i" required>
+
+                <label for="L">
+                    Restlebenszeit in Jahren (L):
+                    <span class="tooltip">ℹ️
+                        <span class="tooltiptext">Die geschätzte Anzahl der Jahre, die du noch lebst.</span>
+                    </span>
+                </label>
+                <input type="number" id="L" name="L" required>
+
+                <label for="P">
+                    Aktueller Bitcoin-Preis (P):
+                    <span class="tooltip">ℹ️
+                        <span class="tooltiptext">Der aktuelle Marktpreis eines Bitcoins in Euro wird automatisch geladen, kann aber bei Bedarf manuell angepasst werden.</span>
+                    </span>
+                </label>
+                <input type="number" id="P" name="P">
+
+                <label for="f">
+                    Multiplikationsfaktor (f):
+                    <span class="tooltip">ℹ️
+                        <span class="tooltiptext">Die geschätzte oder zu erwartende Wachstumsrate von Bitcoin über 4 Jahre, z. B. 2 für eine Verdopplung.</span>
+                    </span>
+                </label>
+                <input type="number" step="0.01" id="f" name="f" required>
+
+                <button type="button" onclick="calculateBitcoin()">Berechnen</button>
+            </form>
+
+            <h2>Ergebnis:</h2>
+            <p id="result">Bitte füllen Sie alle Felder aus und klicken Sie auf "Berechnen".</p>
+        </div>
+    </div>
+
+    <script>
+        // Funktion zum Abrufen des Bitcoin-Preises
+        async function fetchBitcoinPrice() {
+            try {
+                const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=eur');
+                const data = await response.json();
+                const price = data.bitcoin.eur;
+                const priceInput = document.getElementById('P');
+                if (!priceInput.value) {
+                    priceInput.value = price; // Nur setzen, wenn das Feld leer ist
+                }
+            } catch (error) {
+                alert('Fehler beim Abrufen des Bitcoin-Preises. Bitte manuell eingeben.');
+            }
+        }
+
+        // Preis beim Laden der Seite abrufen
+        window.onload = fetchBitcoinPrice;
+
+        function calculateBitcoin() {
+            const monthlyC = parseFloat(document.getElementById('C').value);
+            const C = monthlyC * 12; // Hochrechnung auf jährliche Kosten
+            const L = parseInt(document.getElementById('L').value);
+            const P = parseFloat(document.getElementById('P').value);
+            const f = parseFloat(document.getElementById('f').value);
+            const i = parseFloat(document.getElementById('i').value) / 100;
+
+            if (isNaN(P)) {
+                alert('Bitte den Bitcoin-Preis eingeben.');
+                return;
+            }
+
+            let B = 0;
+            const nSteps = Math.floor(L / 4);
+
+            for (let n = 0; n <= nSteps; n++) {
+                B += (4 * C * Math.pow(1 + i, n)) / (P * Math.pow(f, n));
+            }
+
+            document.getElementById('result').textContent = `Benötigte Bitcoin: ${B.toFixed(2)}`;
+        }
+    </script>
+</body>
+</html>
